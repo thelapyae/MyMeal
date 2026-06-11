@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import FoodGrid from './components/FoodGrid';
 import CalendarView from './components/CalendarView';
 import MealDetail from './components/MealDetail';
+import MacroBar from './components/MacroBar';
 import { fetchMeals, createMeal } from './services/notionAPI';
+import { sumMacros } from './macros';
 import type { Meal } from './types';
 
 function getMealType(): string {
@@ -107,8 +109,16 @@ export default function App() {
   const weekDates = getWeekDates();
   const dayMeals = selectedDate ? mealsByDate[selectedDate] || [] : [];
 
+  // Today's logged macros (estimated from each meal's emoji) plus whatever the
+  // user has currently selected but not yet saved.
+  const todayMeals = mealsByDate[today] || [];
+  const todayMacros = sumMacros([
+    ...todayMeals.map((m) => m.emoji),
+    selected.join(''),
+  ]);
+
   return (
-    <div style={{ ...styles.app, background: 'var(--bg)', color: 'var(--text)', paddingTop: 'env(safe-area-inset-top)' }}>
+    <div style={{ ...styles.app, background: 'var(--bg)', color: 'var(--text)', paddingTop: 'var(--safe-top)' }}>
       <header style={styles.header}>
         <h1 style={{ ...styles.greeting, color: 'var(--text-muted)' }}>
           {loading ? '...' : getGreeting()}
@@ -118,7 +128,7 @@ export default function App() {
         </button>
       </header>
 
-      <main style={{ ...styles.main, paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
+      <main style={{ ...styles.main, paddingBottom: 24 }}>
         {loading ? (
           <div style={styles.loading}>
             <p style={{ ...styles.loadingText, color: 'var(--text-faint)' }}>loading...</p>
@@ -193,9 +203,11 @@ export default function App() {
         )}
       </main>
 
+      {!loading && <MacroBar macros={todayMacros} />}
+
       {showCalendar && (
         <div style={styles.calOverlay} onClick={() => setShowCalendar(false)}>
-          <div style={{ ...styles.calSheet, background: 'var(--surface)', paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ ...styles.calSheet, background: 'var(--surface)', paddingBottom: 'calc(32px + var(--safe-bottom))' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ ...styles.calHandle, background: 'var(--border-strong)' }} />
             <CalendarView
               meals={meals}

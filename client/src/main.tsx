@@ -2,7 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import AccessGate from './components/AccessGate';
+import { setupTelegram } from './telegram';
 import './App.css';
+
+setupTelegram();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
