@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "scripts": {
+    "dev": "cd client && npm run dev",
+    "build": "cd client && npm run build"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.2.15"
+  }
+}
