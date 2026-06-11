@@ -9,6 +9,14 @@ functions (API).
 - Private by default: only the Telegram user IDs you allow can open the app
 - Data lives in **your own** Notion database
 
+## Deploy
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fthelapyae%2FMyMeal&env=NOTION_TOKEN,NOTION_DATABASE_ID,VITE_ALLOWED_TELEGRAM_ID&envDescription=Notion%20integration%20token%2C%20your%20meals%20database%20ID%2C%20and%20a%20comma-separated%20allow-list%20of%20Telegram%20user%20IDs&envLink=https%3A%2F%2Fgithub.com%2Fthelapyae%2FMyMeal%233-configure-environment-variables&project-name=mymeal&repository-name=mymeal)
+
+Clicking the button clones the repo to your own GitHub, prompts you for the three
+environment variables below, and deploys it. You still need to set up Notion and
+connect the bot in Telegram — see the steps below.
+
 ## How it works
 
 - The **client** (`/client`) is a Vite + React app that runs as a Telegram Mini App.
