@@ -11,9 +11,9 @@ functions (API).
 
 ## Deploy
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fthelapyae%2FMyMeal&env=NOTION_TOKEN,NOTION_DATABASE_ID,TELEGRAM_BOT_TOKEN,ALLOWED_TELEGRAM_ID,VITE_ALLOWED_TELEGRAM_ID&envDescription=Notion%20credentials%2C%20Telegram%20bot%20token%2C%20and%20the%20allow-list%20of%20Telegram%20user%20IDs&envLink=https%3A%2F%2Fgithub.com%2Fthelapyae%2FMyMeal%233-configure-environment-variables&project-name=mymeal&repository-name=mymeal)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fthelapyae%2FMyMeal&env=NOTION_TOKEN,NOTION_DATABASE_ID,TELEGRAM_BOT_TOKEN,ALLOWED_TELEGRAM_ID&envDescription=Notion%20credentials%2C%20Telegram%20bot%20token%2C%20and%20the%20allow-list%20of%20Telegram%20user%20IDs&envLink=https%3A%2F%2Fgithub.com%2Fthelapyae%2FMyMeal%233-configure-environment-variables&project-name=mymeal&repository-name=mymeal)
 
-Clicking the button clones the repo to your own GitHub, prompts you for the three
+Clicking the button clones the repo to your own GitHub, prompts you for the four
 environment variables below, and deploys it. You still need to set up Notion and
 connect the bot in Telegram — see the steps below.
 
@@ -69,25 +69,23 @@ You bring four things:
 
 ## 3. Configure environment variables
 
-Copy the example files and fill in your values:
+Copy the example file and fill in your values:
 
 ```bash
-cp .env.example .env                 # NOTION_TOKEN, NOTION_DATABASE_ID, TELEGRAM_BOT_TOKEN, ALLOWED_TELEGRAM_ID
-cp client/.env.example client/.env   # VITE_ALLOWED_TELEGRAM_ID
+cp .env.example .env   # NOTION_TOKEN, NOTION_DATABASE_ID, TELEGRAM_BOT_TOKEN, ALLOWED_TELEGRAM_ID
 ```
 
-| Variable                   | Where        | Description                                            |
-| -------------------------- | ------------ | ------------------------------------------------------ |
-| `NOTION_TOKEN`             | server       | Notion integration secret                              |
-| `NOTION_DATABASE_ID`       | server       | ID of your meals database                              |
-| `TELEGRAM_BOT_TOKEN`       | server       | Bot token used to verify Telegram requests             |
-| `ALLOWED_TELEGRAM_ID`      | server       | Comma-separated allow-list enforced by the API         |
-| `VITE_ALLOWED_TELEGRAM_ID` | client/build | Same allow-list, used by the client UI gate            |
+| Variable              | Description                                            |
+| --------------------- | ------------------------------------------------------ |
+| `NOTION_TOKEN`        | Notion integration secret                              |
+| `NOTION_DATABASE_ID`  | ID of your meals database                              |
+| `TELEGRAM_BOT_TOKEN`  | Bot token used to verify Telegram requests             |
+| `ALLOWED_TELEGRAM_ID` | Comma-separated allow-list of Telegram user IDs        |
 
-> **Security note:** `ALLOWED_TELEGRAM_ID` (server) is what actually protects your
-> data — it's checked against a cryptographically verified Telegram signature.
-> `VITE_ALLOWED_TELEGRAM_ID` (client) only controls the UI and is baked into the
-> bundle at **build time**, so set it before building and keep both lists in sync.
+> **Security note:** all variables are server-side only. `ALLOWED_TELEGRAM_ID` is
+> what protects your data — it's checked against a cryptographically verified
+> Telegram signature on every API request, so opening the site in a browser
+> returns nothing.
 
 ## 4. Run locally
 
@@ -102,9 +100,9 @@ cd client && npm run dev
 ## 5. Deploy to Vercel
 
 1. Import the repo into Vercel.
-2. Add all five environment variables in **Project Settings → Environment Variables**
+2. Add all four environment variables in **Project Settings → Environment Variables**
    (`NOTION_TOKEN`, `NOTION_DATABASE_ID`, `TELEGRAM_BOT_TOKEN`,
-   `ALLOWED_TELEGRAM_ID`, `VITE_ALLOWED_TELEGRAM_ID`).
+   `ALLOWED_TELEGRAM_ID`).
 3. Deploy. The included `vercel.json` builds the client and serves the API.
 
 ## 6. Connect it to Telegram
