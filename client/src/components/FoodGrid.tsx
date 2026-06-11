@@ -2,17 +2,18 @@ import { FOOD_EMOJIS } from '../types';
 
 export default function FoodGrid({
   selected,
-  onToggle,
+  onAdd,
   saving,
 }: {
   selected: string[];
-  onToggle: (emoji: string) => void;
+  onAdd: (emoji: string) => void;
   saving: boolean;
 }) {
   return (
     <div style={styles.grid}>
       {FOOD_EMOJIS.map((emoji) => {
-        const isSelected = selected.includes(emoji);
+        const count = selected.filter((e) => e === emoji).length;
+        const isSelected = count > 0;
         return (
           <button
             key={emoji}
@@ -21,10 +22,16 @@ export default function FoodGrid({
               ...(isSelected ? styles.selected : {}),
               ...(saving ? styles.disabled : {}),
             }}
-            onClick={() => onToggle(emoji)}
+            onClick={() => onAdd(emoji)}
             disabled={saving}
+            aria-label={count > 0 ? `${emoji} selected ${count}` : emoji}
           >
             {emoji}
+            {count > 1 && (
+              <span style={{ ...styles.badge, background: 'var(--text)', color: 'var(--bg)' }}>
+                {count}
+              </span>
+            )}
           </button>
         );
       })}
@@ -39,6 +46,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 10,
   },
   btn: {
+    position: 'relative',
     fontSize: '2rem',
     padding: '14px 0',
     borderRadius: 16,
@@ -58,5 +66,20 @@ const styles: Record<string, React.CSSProperties> = {
   disabled: {
     opacity: 0.3,
     pointerEvents: 'none',
+  },
+  badge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    minWidth: 18,
+    height: 18,
+    padding: '0 4px',
+    borderRadius: 9,
+    fontSize: '0.7rem',
+    fontWeight: 700,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    lineHeight: 1,
   },
 };

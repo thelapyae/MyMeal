@@ -69,13 +69,16 @@ export default function App() {
 
   useEffect(() => { loadMeals(); }, [loadMeals]);
 
-  const handleToggle = (emoji: string) => {
+  const handleAdd = (emoji: string) => {
     if (saving) return;
-    setSelected((prev) =>
-      prev.includes(emoji)
-        ? prev.filter((e) => e !== emoji)
-        : [...prev, emoji]
-    );
+    // Always append so the same food can be selected multiple times
+    // (e.g. two plates of rice -> 🍚🍚).
+    setSelected((prev) => [...prev, emoji]);
+  };
+
+  const handleRemoveAt = (index: number) => {
+    if (saving) return;
+    setSelected((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSave = async () => {
@@ -137,9 +140,26 @@ export default function App() {
           <>
             <FoodGrid
               selected={selected}
-              onToggle={handleToggle}
+              onAdd={handleAdd}
               saving={saving}
             />
+
+            {selected.length > 0 && (
+              <div style={styles.selectedRow}>
+                {selected.map((emoji, i) => (
+                  <button
+                    key={`${emoji}-${i}`}
+                    style={{ ...styles.selectedChip, background: 'var(--elevated)', borderColor: 'var(--border)' }}
+                    onClick={() => handleRemoveAt(i)}
+                    aria-label={`remove ${emoji}`}
+                    disabled={saving}
+                  >
+                    <span>{emoji}</span>
+                    <span style={{ ...styles.chipX, color: 'var(--text-faint)' }}>×</span>
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div style={styles.saveRow}>
               <span style={{ ...styles.saveInfo, color: 'var(--text-faint)' }}>
@@ -284,6 +304,29 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     marginTop: 12,
     gap: 12,
+  },
+  selectedRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 14,
+  },
+  selectedChip: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    padding: '6px 10px',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderStyle: 'solid',
+    fontSize: '1.25rem',
+    lineHeight: 1,
+    cursor: 'pointer',
+    WebkitTapHighlightColor: 'transparent',
+  },
+  chipX: {
+    fontSize: '1rem',
+    fontWeight: 600,
   },
   saveInfo: {
     fontSize: '0.8rem',
