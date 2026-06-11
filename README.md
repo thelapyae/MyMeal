@@ -11,7 +11,7 @@ functions (API).
 
 ## How it works
 
-- The **client** (`/client`) is a Vite + React PWA that runs as a Telegram Mini App.
+- The **client** (`/client`) is a Vite + React app that runs as a Telegram Mini App.
 - The **API** (`/api/meals.ts`) is a Vercel serverless function that talks to the
   Notion API using your integration token.
 - Access is gated to the Telegram user ID(s) you configure.
