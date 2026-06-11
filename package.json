@@ -6,6 +6,7 @@
   },
   "dependencies": {
     "@notionhq/client": "^2.2.15",
+    "@vercel/node": "^5.8.15",
     "@vitejs/plugin-react": "^6.0.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

@@ -16,6 +16,7 @@ interface Inset {
 interface TelegramWebApp {
   ready: () => void;
   expand?: () => void;
+  initData?: string;
   safeAreaInset?: Inset;
   contentSafeAreaInset?: Inset;
   onEvent?: (event: string, handler: () => void) => void;
@@ -24,6 +25,12 @@ interface TelegramWebApp {
 
 function getWebApp(): TelegramWebApp | null {
   return (window as unknown as { Telegram?: { WebApp?: TelegramWebApp } }).Telegram?.WebApp ?? null;
+}
+
+// Raw, signed initData string that the server verifies against the bot token.
+// Empty when the app is opened outside of Telegram.
+export function getInitData(): string {
+  return getWebApp()?.initData ?? '';
 }
 
 function applySafeArea(tg: TelegramWebApp) {

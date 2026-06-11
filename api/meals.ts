@@ -1,15 +1,27 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Client } from '@notionhq/client';
+import { verifyTelegramRequest } from './_auth';
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 const databaseId = process.env.NOTION_DATABASE_ID!;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Telegram-Init-Data');
+
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     return res.status(200).end();
+  }
+
+  // Every data request must carry a valid, signed Telegram initData payload
+  // from an authorized user. This is what actually keeps the meal log private
+  // when the site is opened in a normal browser.
+  const initData =
+    (req.headers['x-telegram-init-data'] as string | undefined) ?? undefined;
+  const auth = verifyTelegramRequest(initData);
+  if (!auth.ok) {
+    return res.status(auth.status).json({ error: auth.error });
   }
 
   try {

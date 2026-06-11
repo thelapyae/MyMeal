@@ -11,7 +11,7 @@ functions (API).
 
 ## Deploy
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fthelapyae%2FMyMeal&env=NOTION_TOKEN,NOTION_DATABASE_ID,VITE_ALLOWED_TELEGRAM_ID&envDescription=Notion%20integration%20token%2C%20your%20meals%20database%20ID%2C%20and%20a%20comma-separated%20allow-list%20of%20Telegram%20user%20IDs&envLink=https%3A%2F%2Fgithub.com%2Fthelapyae%2FMyMeal%233-configure-environment-variables&project-name=mymeal&repository-name=mymeal)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fthelapyae%2FMyMeal&env=NOTION_TOKEN,NOTION_DATABASE_ID,TELEGRAM_BOT_TOKEN,ALLOWED_TELEGRAM_ID,VITE_ALLOWED_TELEGRAM_ID&envDescription=Notion%20credentials%2C%20Telegram%20bot%20token%2C%20and%20the%20allow-list%20of%20Telegram%20user%20IDs&envLink=https%3A%2F%2Fgithub.com%2Fthelapyae%2FMyMeal%233-configure-environment-variables&project-name=mymeal&repository-name=mymeal)
 
 Clicking the button clones the repo to your own GitHub, prompts you for the three
 environment variables below, and deploys it. You still need to set up Notion and
@@ -22,13 +22,18 @@ connect the bot in Telegram — see the steps below.
 - The **client** (`/client`) is a Vite + React app that runs as a Telegram Mini App.
 - The **API** (`/api/meals.ts`) is a Vercel serverless function that talks to the
   Notion API using your integration token.
-- Access is gated to the Telegram user ID(s) you configure.
+- **Every API request is cryptographically verified server-side**: the client
+  sends Telegram's signed `initData`, and the server validates the signature with
+  your bot token and checks the user against the allow-list. This means the meal
+  log stays private even if someone opens the site directly in a browser — the
+  API returns `401`/`403` and no Notion data is ever exposed.
 
-You bring three things:
+You bring four things:
 
 1. A **Notion integration token**
 2. A **Notion database ID**
-3. Your **Telegram user ID**
+3. A **Telegram bot token**
+4. Your **Telegram user ID**
 
 ---
 
@@ -53,29 +58,36 @@ You bring three things:
 5. In the database, click the `•••` menu → **Connections** → add your integration
    so it has permission to read/write.
 
-## 2. Find your Telegram user ID
+## 2. Create a Telegram bot and find your user ID
 
-Message [@userinfobot](https://t.me/userinfobot) on Telegram. It replies with your
-numeric ID — this is your `VITE_ALLOWED_TELEGRAM_ID`. To allow several people, use
-a comma-separated list (e.g. `1695096396,123456789`).
+1. Open [@BotFather](https://t.me/BotFather), send `/newbot`, and follow the
+   prompts. Copy the **bot token** it gives you — this is your
+   `TELEGRAM_BOT_TOKEN`.
+2. Message [@userinfobot](https://t.me/userinfobot). It replies with your numeric
+   ID — this is your Telegram user ID. To allow several people, use a
+   comma-separated list (e.g. `1695096396,123456789`).
 
 ## 3. Configure environment variables
 
 Copy the example files and fill in your values:
 
 ```bash
-cp .env.example .env                 # NOTION_TOKEN, NOTION_DATABASE_ID
+cp .env.example .env                 # NOTION_TOKEN, NOTION_DATABASE_ID, TELEGRAM_BOT_TOKEN, ALLOWED_TELEGRAM_ID
 cp client/.env.example client/.env   # VITE_ALLOWED_TELEGRAM_ID
 ```
 
-| Variable                   | Where        | Description                                   |
-| -------------------------- | ------------ | --------------------------------------------- |
-| `NOTION_TOKEN`             | server       | Notion integration secret                     |
-| `NOTION_DATABASE_ID`       | server       | ID of your meals database                     |
-| `VITE_ALLOWED_TELEGRAM_ID` | client/build | Comma-separated allow-list of Telegram IDs    |
+| Variable                   | Where        | Description                                            |
+| -------------------------- | ------------ | ------------------------------------------------------ |
+| `NOTION_TOKEN`             | server       | Notion integration secret                              |
+| `NOTION_DATABASE_ID`       | server       | ID of your meals database                              |
+| `TELEGRAM_BOT_TOKEN`       | server       | Bot token used to verify Telegram requests             |
+| `ALLOWED_TELEGRAM_ID`      | server       | Comma-separated allow-list enforced by the API         |
+| `VITE_ALLOWED_TELEGRAM_ID` | client/build | Same allow-list, used by the client UI gate            |
 
-> `VITE_ALLOWED_TELEGRAM_ID` is read at **build time** and baked into the client
-> bundle, so you must set it before building (and rebuild if you change it).
+> **Security note:** `ALLOWED_TELEGRAM_ID` (server) is what actually protects your
+> data — it's checked against a cryptographically verified Telegram signature.
+> `VITE_ALLOWED_TELEGRAM_ID` (client) only controls the UI and is baked into the
+> bundle at **build time**, so set it before building and keep both lists in sync.
 
 ## 4. Run locally
 
@@ -90,17 +102,19 @@ cd client && npm run dev
 ## 5. Deploy to Vercel
 
 1. Import the repo into Vercel.
-2. Add all three environment variables in **Project Settings → Environment Variables**
-   (`NOTION_TOKEN`, `NOTION_DATABASE_ID`, `VITE_ALLOWED_TELEGRAM_ID`).
+2. Add all five environment variables in **Project Settings → Environment Variables**
+   (`NOTION_TOKEN`, `NOTION_DATABASE_ID`, `TELEGRAM_BOT_TOKEN`,
+   `ALLOWED_TELEGRAM_ID`, `VITE_ALLOWED_TELEGRAM_ID`).
 3. Deploy. The included `vercel.json` builds the client and serves the API.
 
 ## 6. Connect it to Telegram
 
-1. Open [@BotFather](https://t.me/BotFather) and create a bot (`/newbot`).
+1. Open [@BotFather](https://t.me/BotFather) (using the bot you created in step 2).
 2. Set up a Mini App / Web App (`/newapp` or via bot settings) and point its URL
    at your deployed Vercel domain.
-3. Open the app from your bot. Only the Telegram IDs in `VITE_ALLOWED_TELEGRAM_ID`
-   will get in; everyone else sees "access denied".
+3. Open the app from your bot. Only the Telegram IDs you configured will get in;
+   everyone else — including anyone opening the URL in a browser — is rejected
+   both at the UI and at the API.
 
 ---
 
