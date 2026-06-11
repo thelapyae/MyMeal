@@ -18,23 +18,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let filter: any;
 
       if (date) {
-        filter = { property: 'Date', date: { equals: date as string } };
-      } else if (month) {
-        const [y, m] = (month as string).split('-');
-        const start = `${y}-${m}-01`;
-        const lastDay = String(new Date(Number(y), Number(m), 0).getDate()).padStart(2, '0');
-        const end = `${y}-${m}-${lastDay}`;
+        const d = date as string;
         filter = {
           and: [
-            { property: 'Date', date: { on_or_after: start } },
-            { property: 'Date', date: { on_or_before: end } }
+            { property: 'Date', date: { on_or_after: `${d}T00:00:00` } },
+            { property: 'Date', date: { on_or_before: `${d}T23:59:59` } }
+          ]
+        };
+      } else if (month) {
+        const [y, m] = (month as string).split('-');
+        const lastDay = String(new Date(Number(y), Number(m), 0).getDate()).padStart(2, '0');
+        filter = {
+          and: [
+            { property: 'Date', date: { on_or_after: `${y}-${m}-01T00:00:00` } },
+            { property: 'Date', date: { on_or_before: `${y}-${m}-${lastDay}T23:59:59` } }
           ]
         };
       } else if (year) {
         filter = {
           and: [
-            { property: 'Date', date: { on_or_after: `${year}-01-01` } },
-            { property: 'Date', date: { on_or_before: `${year}-12-31` } }
+            { property: 'Date', date: { on_or_after: `${year}-01-01T00:00:00` } },
+            { property: 'Date', date: { on_or_before: `${year}-12-31T23:59:59` } }
           ]
         };
       }

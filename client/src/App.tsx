@@ -19,8 +19,14 @@ function getGreeting(): string {
   return 'ready for dinner?';
 }
 
-function formatDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function nowISO(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function dateOnly(iso: string): string {
+  return iso.slice(0, 10);
 }
 
 function getWeekDates(): string[] {
@@ -30,7 +36,7 @@ function getWeekDates(): string[] {
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
-    return formatDate(d);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
 }
 
@@ -41,10 +47,10 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [saving, setSaving] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
 
-  const today = formatDate(new Date());
+  const today = nowISO().slice(0, 10);
 
   const loadMeals = useCallback(async () => {
     try {
@@ -61,40 +67,50 @@ export default function App() {
 
   useEffect(() => { loadMeals(); }, [loadMeals]);
 
-  const handleEmojiSelect = async (emoji: string) => {
+  const handleToggle = (emoji: string) => {
     if (saving) return;
-    setSaving(emoji);
+    setSelected((prev) =>
+      prev.includes(emoji)
+        ? prev.filter((e) => e !== emoji)
+        : [...prev, emoji]
+    );
+  };
+
+  const handleSave = async () => {
+    if (selected.length === 0 || saving) return;
+    setSaving(true);
     const mealType = getMealType();
+    const emojiStr = selected.join('');
     try {
       await createMeal({
-        name: `${mealType} ${emoji}`,
-        date: today,
+        name: `${mealType} ${emojiStr}`,
+        date: nowISO(),
         mealType,
-        emoji,
+        emoji: emojiStr,
       });
-      setFeedback(emoji);
-      setTimeout(() => setFeedback(null), 1200);
+      setSelected([]);
       await loadMeals();
     } catch (err) {
       console.error('Failed to save meal:', err);
     } finally {
-      setSaving(null);
+      setSaving(false);
     }
   };
 
   const mealsByDate: Record<string, Meal[]> = {};
   for (const m of meals) {
-    if (!mealsByDate[m.date]) mealsByDate[m.date] = [];
-    mealsByDate[m.date].push(m);
+    const d = dateOnly(m.date);
+    if (!mealsByDate[d]) mealsByDate[d] = [];
+    mealsByDate[d].push(m);
   }
 
   const weekDates = getWeekDates();
   const dayMeals = selectedDate ? mealsByDate[selectedDate] || [] : [];
 
   return (
-    <div style={styles.app}>
+    <div style={{ ...styles.app, background: 'var(--bg)', color: 'var(--text)' }}>
       <header style={styles.header}>
-        <h1 style={styles.greeting}>
+        <h1 style={{ ...styles.greeting, color: 'var(--text-muted)' }}>
           {loading ? '...' : getGreeting()}
         </h1>
         <button style={styles.calBtn} onClick={() => setShowCalendar(true)}>
@@ -105,23 +121,39 @@ export default function App() {
       <main style={styles.main}>
         {loading ? (
           <div style={styles.loading}>
-            <p style={styles.loadingText}>loading...</p>
+            <p style={{ ...styles.loadingText, color: 'var(--text-faint)' }}>loading...</p>
           </div>
         ) : (
           <>
-            <FoodGrid onSelect={handleEmojiSelect} saving={saving} />
+            <FoodGrid
+              selected={selected}
+              onToggle={handleToggle}
+              saving={saving}
+            />
 
-            {feedback && (
-              <div style={styles.feedback}>
-                <span style={styles.feedbackText}>{feedback} saved</span>
-              </div>
-            )}
+            <div style={styles.saveRow}>
+              <span style={{ ...styles.saveInfo, color: 'var(--text-faint)' }}>
+                {selected.length > 0 ? `${selected.length} item${selected.length > 1 ? 's' : ''}` : 'tap items to log'}
+              </span>
+              <button
+                style={{
+                  ...styles.saveBtn,
+                  background: selected.length > 0 ? 'var(--text)' : 'var(--border)',
+                  color: selected.length > 0 ? 'var(--bg)' : 'var(--text-faint)',
+                  cursor: selected.length > 0 && !saving ? 'pointer' : 'default',
+                }}
+                disabled={selected.length === 0 || saving}
+                onClick={handleSave}
+              >
+                {saving ? 'saving...' : `save ${getMealType().toLowerCase()}`}
+              </button>
+            </div>
 
-            <div style={styles.weekSection}>
-              <h2 style={styles.weekTitle}>this week</h2>
+            <div style={{ ...styles.weekSection, borderTopColor: 'var(--border)' }}>
+              <h2 style={{ ...styles.weekTitle, color: 'var(--text-faint)' }}>this week</h2>
               <div style={styles.weekGrid}>
                 {weekDates.map((date, i) => {
-                  const dayMeals = mealsByDate[date] || [];
+                  const dMeals = mealsByDate[date] || [];
                   const isToday = date === today;
                   return (
                     <button
@@ -129,19 +161,26 @@ export default function App() {
                       style={styles.weekDay}
                       onClick={() => setSelectedDate(date)}
                     >
-                      <span style={styles.weekDayName}>
+                      <span style={{ ...styles.weekDayName, color: 'var(--text-faint)' }}>
                         {DAY_ABBR[i]}
                       </span>
                       <span
                         style={{
                           ...styles.weekDayNum,
-                          ...(isToday ? styles.weekDayToday : {}),
+                          color: isToday ? 'var(--text)' : 'var(--text-muted)',
+                          ...(isToday ? {
+                            border: '1px solid var(--text-muted)',
+                            borderRadius: '50%',
+                            width: 28, height: 28,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '0.85rem',
+                          } : {}),
                         }}
                       >
                         {new Date(date).getDate()}
                       </span>
                       <div style={styles.weekEmojis}>
-                        {dayMeals.map((m) => (
+                        {dMeals.map((m) => (
                           <span key={m.id} style={styles.weekEmoji}>{m.emoji}</span>
                         ))}
                       </div>
@@ -156,8 +195,8 @@ export default function App() {
 
       {showCalendar && (
         <div style={styles.calOverlay} onClick={() => setShowCalendar(false)}>
-          <div style={styles.calSheet} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.calHandle} />
+          <div style={{ ...styles.calSheet, background: 'var(--surface)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ ...styles.calHandle, background: 'var(--border-strong)' }} />
             <CalendarView
               meals={meals}
               onDayClick={(date) => {
@@ -166,7 +205,7 @@ export default function App() {
               }}
             />
             <button
-              style={styles.closeBtn}
+              style={{ ...styles.closeBtn, borderColor: 'var(--border)', color: 'var(--text-muted)' }}
               onClick={() => setShowCalendar(false)}
             >
               close
@@ -189,8 +228,6 @@ export default function App() {
 const styles: Record<string, React.CSSProperties> = {
   app: {
     minHeight: '100dvh',
-    background: '#000',
-    color: '#fff',
     display: 'flex',
     flexDirection: 'column',
   },
@@ -204,7 +241,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '1.15rem',
     fontWeight: 500,
     margin: 0,
-    color: 'rgba(255,255,255,0.8)',
     letterSpacing: '0.01em',
   },
   calBtn: {
@@ -228,26 +264,36 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '60px 0',
   },
   loadingText: {
-    color: 'rgba(255,255,255,0.3)',
     fontSize: '0.9rem',
   },
-  feedback: {
-    textAlign: 'center',
-    padding: '8px 0',
+  saveRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 12,
   },
-  feedbackText: {
+  saveInfo: {
     fontSize: '0.8rem',
-    color: 'rgba(255,255,255,0.5)',
+    flex: 1,
+  },
+  saveBtn: {
+    padding: '10px 20px',
+    borderRadius: 10,
+    border: 'none',
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    WebkitTapHighlightColor: 'transparent',
   },
   weekSection: {
     marginTop: 24,
-    borderTop: '1px solid rgba(255,255,255,0.06)',
+    borderTopWidth: 1,
+    borderTopStyle: 'solid',
     paddingTop: 16,
   },
   weekTitle: {
-    fontSize: '0.8rem',
+    fontSize: '0.75rem',
     fontWeight: 500,
-    color: 'rgba(255,255,255,0.3)',
     textTransform: 'uppercase' as const,
     letterSpacing: '0.08em',
     margin: '0 0 12px',
@@ -271,42 +317,33 @@ const styles: Record<string, React.CSSProperties> = {
   },
   weekDayName: {
     fontSize: '0.6rem',
-    color: 'rgba(255,255,255,0.25)',
     fontWeight: 500,
     textTransform: 'uppercase' as const,
   },
   weekDayNum: {
     fontSize: '1rem',
-    color: 'rgba(255,255,255,0.6)',
     fontWeight: 500,
-  },
-  weekDayToday: {
-    color: '#fff',
-    fontWeight: 700,
-    border: '1px solid rgba(255,255,255,0.3)',
-    borderRadius: '50%',
     width: 28,
     height: 28,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '0.85rem',
   },
   weekEmojis: {
     display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
     gap: 1,
-    minHeight: 24,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    minHeight: 22,
   },
   weekEmoji: {
-    fontSize: '0.7rem',
+    fontSize: '0.65rem',
     lineHeight: 1,
   },
   calOverlay: {
     position: 'fixed',
     inset: 0,
-    background: 'rgba(0,0,0,0.7)',
+    background: 'rgba(0,0,0,0.6)',
     zIndex: 100,
     display: 'flex',
     alignItems: 'flex-end',
@@ -315,7 +352,6 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%',
     maxWidth: 500,
     margin: '0 auto',
-    background: '#0a0a0a',
     borderRadius: '20px 20px 0 0',
     padding: '12px 0 32px',
     maxHeight: '85vh',
@@ -325,7 +361,6 @@ const styles: Record<string, React.CSSProperties> = {
     width: 36,
     height: 4,
     borderRadius: 2,
-    background: 'rgba(255,255,255,0.12)',
     margin: '0 auto 12px',
   },
   closeBtn: {
@@ -333,9 +368,9 @@ const styles: Record<string, React.CSSProperties> = {
     margin: '16px 16px 0',
     padding: '12px',
     borderRadius: 10,
-    border: '1px solid rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    borderStyle: 'solid',
     background: 'transparent',
-    color: 'rgba(255,255,255,0.6)',
     fontSize: '0.9rem',
     fontWeight: 500,
     cursor: 'pointer',

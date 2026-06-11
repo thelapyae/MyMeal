@@ -16,14 +16,14 @@ export default function SplashScreen({ onFinish }: { onFinish: () => void }) {
     <AnimatePresence>
       {show && (
         <motion.div
-          style={styles.container}
+          style={{ ...styles.container, background: 'var(--bg)' }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
         >
           <motion.h1
-            style={styles.title}
+            style={{ ...styles.title, color: 'var(--text)' }}
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
@@ -40,7 +40,6 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     position: 'fixed',
     inset: 0,
-    background: '#000',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -49,7 +48,6 @@ const styles: Record<string, React.CSSProperties> = {
   title: {
     fontSize: '2rem',
     fontWeight: 300,
-    color: '#fff',
     letterSpacing: '0.15em',
   },
 };

@@ -5,7 +5,6 @@ import type { Meal } from '../types';
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
 }
-
 function getFirstDayOfMonth(year: number, month: number) {
   return new Date(year, month, 1).getDay();
 }
@@ -35,8 +34,9 @@ export default function CalendarView({
   const mealsByDate = useMemo(() => {
     const map: Record<string, Meal[]> = {};
     for (const meal of meals) {
-      if (!map[meal.date]) map[meal.date] = [];
-      map[meal.date].push(meal);
+      const d = meal.date.slice(0, 10);
+      if (!map[d]) map[d] = [];
+      map[d].push(meal);
     }
     return map;
   }, [meals]);
@@ -49,16 +49,22 @@ export default function CalendarView({
   const firstDay = getFirstDayOfMonth(year, month);
 
   const cells: React.ReactNode[] = [];
-  for (let i = 0; i < firstDay; i++) {
-    cells.push(<div key={`e-${i}`} />);
-  }
+  for (let i = 0; i < firstDay; i++) cells.push(<div key={`e-${i}`} />);
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = fmt(year, month, d);
     const dayMeals = mealsByDate[dateStr] || [];
     const isToday = dateStr === todayStr;
     cells.push(
       <button key={d} style={styles.dayCell} onClick={() => onDayClick(dateStr)}>
-        <span style={{ ...styles.dayNum, ...(isToday ? styles.dayNumToday : {}) }}>{d}</span>
+        <span
+          style={{
+            ...styles.dayNum,
+            color: isToday ? 'var(--text)' : 'var(--text-muted)',
+            ...(isToday ? styles.dayNumToday : {}),
+          }}
+        >
+          {d}
+        </span>
         <div style={styles.emojiRow}>
           {dayMeals.slice(0, 3).map((m, i) => (
             <span key={i} style={styles.emojiDot}>{m.emoji}</span>
@@ -71,13 +77,13 @@ export default function CalendarView({
   return (
     <div style={styles.container}>
       <div style={styles.navRow}>
-        <button style={styles.navBtn} onClick={() => navigate(-1)}>‹</button>
-        <h2 style={styles.title}>{MONTHS[month]} {year}</h2>
-        <button style={styles.navBtn} onClick={() => navigate(1)}>›</button>
+        <button style={{ ...styles.navBtn, color: 'var(--text)' }} onClick={() => navigate(-1)}>‹</button>
+        <h2 style={{ ...styles.title, color: 'var(--text)' }}>{MONTHS[month]} {year}</h2>
+        <button style={{ ...styles.navBtn, color: 'var(--text)' }} onClick={() => navigate(1)}>›</button>
       </div>
       <motion.div key={`${year}-${month}`} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18 }}>
         <div style={styles.dayHeaders}>
-          {DAYS.map((d) => <span key={d} style={styles.dayHeader}>{d.slice(0, 2)}</span>)}
+          {DAYS.map((d) => <span key={d} style={{ ...styles.dayHeader, color: 'var(--text-faint)' }}>{d.slice(0, 2)}</span>)}
         </div>
         <div style={styles.grid}>{cells}</div>
       </motion.div>
@@ -100,7 +106,6 @@ const styles: Record<string, React.CSSProperties> = {
   navBtn: {
     background: 'none',
     border: 'none',
-    color: '#fff',
     fontSize: '1.8rem',
     cursor: 'pointer',
     padding: '4px 10px',
@@ -110,7 +115,6 @@ const styles: Record<string, React.CSSProperties> = {
   title: {
     fontSize: '1rem',
     fontWeight: 600,
-    color: '#fff',
     margin: 0,
   },
   dayHeaders: {
@@ -121,7 +125,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   dayHeader: {
     fontSize: '0.65rem',
-    color: 'rgba(255,255,255,0.3)',
     fontWeight: 500,
     padding: '4px 0',
   },
@@ -144,19 +147,17 @@ const styles: Record<string, React.CSSProperties> = {
   },
   dayNum: {
     fontSize: '0.8rem',
-    color: 'rgba(255,255,255,0.5)',
     fontWeight: 400,
-  },
-  dayNumToday: {
-    color: '#fff',
-    fontWeight: 700,
-    border: '1px solid rgba(255,255,255,0.3)',
-    borderRadius: '50%',
     width: 24,
     height: 24,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  dayNumToday: {
+    fontWeight: 700,
+    border: '1px solid var(--border-strong)',
+    borderRadius: '50%',
     fontSize: '0.75rem',
   },
   emojiRow: {

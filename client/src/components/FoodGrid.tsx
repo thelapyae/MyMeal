@@ -1,34 +1,33 @@
-import { useState } from 'react';
-
-const FOOD_EMOJIS = [
-  '🍗', '🥩', '🍖', '🐟', '🐠', '🍣', '🥓', '🍔',
-  '🥚', '🥛', '🧀', '🥗', '🥦', '🍅', '🥑', '🍞',
-  '🥐', '🍝', '🍜', '🍲', '🥣', '☕', '🧃', '🍎',
-  '🍌', '🍇', '🥝', '🥕', '🧁', '🍪', '🥜', '🌰'
-];
+import { FOOD_EMOJIS } from '../types';
 
 export default function FoodGrid({
-  onSelect,
+  selected,
+  onToggle,
   saving,
 }: {
-  onSelect: (emoji: string) => void;
-  saving: string | null;
+  selected: string[];
+  onToggle: (emoji: string) => void;
+  saving: boolean;
 }) {
   return (
     <div style={styles.grid}>
-      {FOOD_EMOJIS.map((emoji) => (
-        <button
-          key={emoji}
-          style={{
-            ...styles.emojiBtn,
-            ...(saving === emoji ? styles.saving : {}),
-          }}
-          onClick={() => onSelect(emoji)}
-          disabled={saving !== null}
-        >
-          {emoji}
-        </button>
-      ))}
+      {FOOD_EMOJIS.map((emoji) => {
+        const isSelected = selected.includes(emoji);
+        return (
+          <button
+            key={emoji}
+            style={{
+              ...styles.btn,
+              ...(isSelected ? styles.selected : {}),
+              ...(saving ? styles.disabled : {}),
+            }}
+            onClick={() => onToggle(emoji)}
+            disabled={saving}
+          >
+            {emoji}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -38,21 +37,26 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'grid',
     gridTemplateColumns: 'repeat(4, 1fr)',
     gap: 10,
-    padding: '0 4px',
   },
-  emojiBtn: {
+  btn: {
     fontSize: '2rem',
     padding: '14px 0',
     borderRadius: 16,
-    border: '1px solid rgba(255,255,255,0.08)',
-    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid var(--border)',
+    background: 'var(--surface)',
     cursor: 'pointer',
-    transition: 'all 0.15s',
+    transition: 'all 0.12s',
     lineHeight: 1,
     WebkitTapHighlightColor: 'transparent',
+    opacity: 1,
   },
-  saving: {
+  selected: {
+    border: '1px solid var(--text)',
+    background: 'var(--elevated)',
+    transform: 'scale(1.05)',
+  },
+  disabled: {
     opacity: 0.3,
-    transform: 'scale(0.9)',
+    pointerEvents: 'none',
   },
 };
