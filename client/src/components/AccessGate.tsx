@@ -1,16 +1,9 @@
 import { useEffect, useState } from 'react';
 
-// Allow-list of Telegram user IDs that may use the app. Configure this with the
-// VITE_ALLOWED_TELEGRAM_ID environment variable (comma-separated to allow more
-// than one user), e.g. VITE_ALLOWED_TELEGRAM_ID=1695096396,123456789
-const ALLOWED_TELEGRAM_IDS: number[] = (import.meta.env.VITE_ALLOWED_TELEGRAM_ID ?? '')
-  .split(',')
-  .map((id: string) => Number(id.trim()))
-  .filter((id: number) => Number.isFinite(id) && id > 0);
+// Only this Telegram user is allowed to use the app.
+const ALLOWED_TELEGRAM_ID = 1695096396;
 
-const IS_CONFIGURED = ALLOWED_TELEGRAM_IDS.length > 0;
-
-type GateState = 'checking' | 'allowed' | 'denied' | 'unconfigured';
+type GateState = 'checking' | 'allowed' | 'denied';
 
 interface TelegramWebApp {
   ready: () => void;
@@ -37,20 +30,13 @@ export default function AccessGate({ children }: { children: React.ReactNode }) 
   const [state, setState] = useState<GateState>('checking');
 
   useEffect(() => {
-    // If no allow-list is configured, surface a clear setup message instead of
-    // silently denying everyone.
-    if (!IS_CONFIGURED) {
-      setState('unconfigured');
-      return;
-    }
-
     // Telegram injects the WebApp object synchronously once the script loads,
     // but give it a tick in case it is still initializing.
     let attempts = 0;
     const check = () => {
       const userId = getTelegramUserId();
       if (userId !== null) {
-        setState(ALLOWED_TELEGRAM_IDS.includes(userId) ? 'allowed' : 'denied');
+        setState(userId === ALLOWED_TELEGRAM_ID ? 'allowed' : 'denied');
         return;
       }
       attempts += 1;
@@ -72,14 +58,6 @@ export default function AccessGate({ children }: { children: React.ReactNode }) 
     <div style={{ ...styles.container, background: 'var(--bg)', color: 'var(--text)' }}>
       {state === 'checking' ? (
         <p style={{ ...styles.text, color: 'var(--text-faint)' }}>checking access...</p>
-      ) : state === 'unconfigured' ? (
-        <>
-          <h1 style={styles.title}>setup required</h1>
-          <p style={{ ...styles.text, color: 'var(--text-faint)' }}>
-            set the <code style={styles.code}>VITE_ALLOWED_TELEGRAM_ID</code> environment variable to
-            your Telegram user ID, then rebuild. see the README for setup steps.
-          </p>
-        </>
       ) : (
         <>
           <h1 style={styles.title}>access denied</h1>
@@ -114,12 +92,5 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: 280,
     lineHeight: 1.5,
     margin: 0,
-  },
-  code: {
-    fontFamily: 'monospace',
-    fontSize: '0.8rem',
-    background: 'var(--surface, rgba(255,255,255,0.08))',
-    padding: '1px 5px',
-    borderRadius: 4,
   },
 };
