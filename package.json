@@ -5,6 +5,8 @@
     "build": "cd client && npm run build"
   },
   "dependencies": {
-    "@notionhq/client": "^2.2.15"
+    "@notionhq/client": "^2.2.15",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   }
 }
