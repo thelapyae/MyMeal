@@ -7,24 +7,33 @@ import { fetchMeals, createMeal } from './services/notionAPI';
 import { sumMacros } from './macros';
 import type { Meal } from './types';
 
+// Yangon time (UTC+6:30, no DST). Meals are always logged in this timezone
+// regardless of the device's local timezone.
+const YANGON_OFFSET_MS = 6.5 * 60 * 60 * 1000;
+
+function yangonNow(): Date {
+  const now = new Date();
+  return new Date(now.getTime() + now.getTimezoneOffset() * 60000 + YANGON_OFFSET_MS);
+}
+
 function getMealType(): string {
-  const h = new Date().getHours();
+  const h = yangonNow().getHours();
   if (h < 11) return 'Breakfast';
   if (h < 16) return 'Lunch';
   return 'Dinner';
 }
 
 function getGreeting(): string {
-  const h = new Date().getHours();
+  const h = yangonNow().getHours();
   if (h < 11) return 'ready for breakfast?';
   if (h < 16) return 'ready for lunch?';
   return 'ready for dinner?';
 }
 
 function nowISO(): string {
-  const d = new Date();
+  const d = yangonNow();
   const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}+06:30`;
 }
 
 function dateOnly(iso: string): string {
@@ -88,7 +97,7 @@ export default function App() {
     const emojiStr = selected.join('');
     try {
       await createMeal({
-        name: `${mealType} ${emojiStr}`,
+        name: emojiStr,
         date: nowISO(),
         mealType,
         emoji: emojiStr,
