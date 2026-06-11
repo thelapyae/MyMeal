@@ -108,7 +108,7 @@ export default function App() {
   const dayMeals = selectedDate ? mealsByDate[selectedDate] || [] : [];
 
   return (
-    <div style={{ ...styles.app, background: 'var(--bg)', color: 'var(--text)' }}>
+    <div style={{ ...styles.app, background: 'var(--bg)', color: 'var(--text)', paddingTop: 'env(safe-area-inset-top)' }}>
       <header style={styles.header}>
         <h1 style={{ ...styles.greeting, color: 'var(--text-muted)' }}>
           {loading ? '...' : getGreeting()}
@@ -118,7 +118,7 @@ export default function App() {
         </button>
       </header>
 
-      <main style={styles.main}>
+      <main style={{ ...styles.main, paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
         {loading ? (
           <div style={styles.loading}>
             <p style={{ ...styles.loadingText, color: 'var(--text-faint)' }}>loading...</p>
@@ -195,7 +195,7 @@ export default function App() {
 
       {showCalendar && (
         <div style={styles.calOverlay} onClick={() => setShowCalendar(false)}>
-          <div style={{ ...styles.calSheet, background: 'var(--surface)' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ ...styles.calSheet, background: 'var(--surface)', paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ ...styles.calHandle, background: 'var(--border-strong)' }} />
             <CalendarView
               meals={meals}

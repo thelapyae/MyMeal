@@ -20,7 +20,7 @@ export default function MealDetail({
         onClick={onClose}
       >
         <motion.div
-          style={{ ...styles.sheet, background: 'var(--surface)' }}
+          style={{ ...styles.sheet, background: 'var(--surface)', paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
           initial={{ y: '100%' }}
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
