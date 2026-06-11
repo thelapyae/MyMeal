@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getInitData } from '../telegram';
 
 type GateState = 'checking' | 'allowed' | 'denied';
 
@@ -11,7 +12,7 @@ interface TelegramWebApp {
   };
 }
 
-function getTelegramContext(): { hasUser: boolean } | null {
+function getWebApp(): TelegramWebApp | null {
   const tg = (window as unknown as { Telegram?: { WebApp?: TelegramWebApp } }).Telegram?.WebApp;
   if (!tg) return null;
   try {
@@ -20,35 +21,59 @@ function getTelegramContext(): { hasUser: boolean } | null {
   } catch {
     // ignore
   }
-  // Require a signed initData payload and a user id. Real authorization is
-  // enforced server-side against ALLOWED_TELEGRAM_ID; this gate only confirms
-  // the app is genuinely running inside Telegram.
-  const hasUser = Boolean(tg.initData) && typeof tg.initDataUnsafe?.user?.id === 'number';
-  return { hasUser };
+  return tg;
+}
+
+// Ask the server whether this Telegram user is authorized. The server compares
+// the Telegram id (from the signed initData) against ALLOWED_TELEGRAM_ID, so the
+// allow-list never ships to the browser. 200 -> allowed, anything else -> denied.
+async function checkAuthorized(initData: string): Promise<boolean> {
+  try {
+    const res = await fetch('/api/meals?date=1970-01-01', {
+      headers: { 'X-Telegram-Init-Data': initData },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export default function AccessGate({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<GateState>('checking');
 
   useEffect(() => {
-    // Telegram injects the WebApp object synchronously once the script loads,
-    // but give it a tick in case it is still initializing.
     let attempts = 0;
-    const check = () => {
-      const ctx = getTelegramContext();
-      if (ctx) {
-        setState(ctx.hasUser ? 'allowed' : 'denied');
+    let cancelled = false;
+
+    const run = async () => {
+      const tg = getWebApp();
+      // Telegram injects the WebApp object synchronously, but give it a few
+      // ticks in case the script is still initializing.
+      if (!tg) {
+        attempts += 1;
+        if (attempts < 10) {
+          setTimeout(run, 150);
+        } else if (!cancelled) {
+          // No Telegram WebApp at all (opened directly in a browser).
+          setState('denied');
+        }
         return;
       }
-      attempts += 1;
-      if (attempts < 10) {
-        setTimeout(check, 150);
-      } else {
-        // No Telegram WebApp at all (opened directly in a browser).
-        setState('denied');
+
+      const initData = getInitData();
+      if (!initData) {
+        if (!cancelled) setState('denied');
+        return;
       }
+
+      const ok = await checkAuthorized(initData);
+      if (!cancelled) setState(ok ? 'allowed' : 'denied');
     };
-    check();
+
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (state === 'allowed') {

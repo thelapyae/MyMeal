@@ -11,9 +11,9 @@ functions (API).
 
 ## Deploy
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fthelapyae%2FMyMeal&env=NOTION_TOKEN,NOTION_DATABASE_ID,TELEGRAM_BOT_TOKEN,ALLOWED_TELEGRAM_ID&envDescription=Notion%20credentials%2C%20Telegram%20bot%20token%2C%20and%20the%20allow-list%20of%20Telegram%20user%20IDs&envLink=https%3A%2F%2Fgithub.com%2Fthelapyae%2FMyMeal%233-configure-environment-variables&project-name=mymeal&repository-name=mymeal)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fthelapyae%2FMyMeal&env=NOTION_TOKEN,NOTION_DATABASE_ID,ALLOWED_TELEGRAM_ID&envDescription=Notion%20credentials%20and%20the%20allow-list%20of%20Telegram%20user%20IDs&envLink=https%3A%2F%2Fgithub.com%2Fthelapyae%2FMyMeal%233-configure-environment-variables&project-name=mymeal&repository-name=mymeal)
 
-Clicking the button clones the repo to your own GitHub, prompts you for the four
+Clicking the button clones the repo to your own GitHub, prompts you for the
 environment variables below, and deploys it. You still need to set up Notion and
 connect the bot in Telegram — see the steps below.
 
@@ -22,18 +22,21 @@ connect the bot in Telegram — see the steps below.
 - The **client** (`/client`) is a Vite + React app that runs as a Telegram Mini App.
 - The **API** (`/api/meals.ts`) is a Vercel serverless function that talks to the
   Notion API using your integration token.
-- **Every API request is cryptographically verified server-side**: the client
-  sends Telegram's signed `initData`, and the server validates the signature with
-  your bot token and checks the user against the allow-list. This means the meal
-  log stays private even if someone opens the site directly in a browser — the
-  API returns `401`/`403` and no Notion data is ever exposed.
+- **Every API request is authorized server-side**: the client sends Telegram's
+  `initData`, and the server reads the Telegram user id and checks it against
+  `ALLOWED_TELEGRAM_ID`. Anyone who isn't on the allow-list — including someone
+  opening the site directly in a browser — gets `401`/`403` and no Notion data is
+  ever exposed.
+- Optionally set `TELEGRAM_BOT_TOKEN` to also cryptographically verify the
+  `initData` signature so the user id cannot be forged. This is recommended but
+  not required for the app to work.
 
-You bring four things:
+You bring three things (plus an optional fourth):
 
 1. A **Notion integration token**
 2. A **Notion database ID**
-3. A **Telegram bot token**
-4. Your **Telegram user ID**
+3. Your **Telegram user ID**
+4. *(optional)* A **Telegram bot token** for signature verification
 
 ---
 
@@ -58,34 +61,35 @@ You bring four things:
 5. In the database, click the `•••` menu → **Connections** → add your integration
    so it has permission to read/write.
 
-## 2. Create a Telegram bot and find your user ID
+## 2. Find your Telegram user ID
 
-1. Open [@BotFather](https://t.me/BotFather), send `/newbot`, and follow the
-   prompts. Copy the **bot token** it gives you — this is your
-   `TELEGRAM_BOT_TOKEN`.
-2. Message [@userinfobot](https://t.me/userinfobot). It replies with your numeric
-   ID — this is your Telegram user ID. To allow several people, use a
-   comma-separated list (e.g. `1695096396,123456789`).
+Message [@userinfobot](https://t.me/userinfobot). It replies with your numeric
+ID — this is your Telegram user ID. To allow several people, use a comma-separated
+list (e.g. `1695096396,123456789`).
+
+*(Optional, recommended)* If you want signature verification, open
+[@BotFather](https://t.me/BotFather), send `/newbot`, and copy the **bot token** —
+this is your `TELEGRAM_BOT_TOKEN`.
 
 ## 3. Configure environment variables
 
 Copy the example file and fill in your values:
 
 ```bash
-cp .env.example .env   # NOTION_TOKEN, NOTION_DATABASE_ID, TELEGRAM_BOT_TOKEN, ALLOWED_TELEGRAM_ID
+cp .env.example .env   # NOTION_TOKEN, NOTION_DATABASE_ID, ALLOWED_TELEGRAM_ID, (optional) TELEGRAM_BOT_TOKEN
 ```
 
-| Variable              | Description                                            |
-| --------------------- | ------------------------------------------------------ |
-| `NOTION_TOKEN`        | Notion integration secret                              |
-| `NOTION_DATABASE_ID`  | ID of your meals database                              |
-| `TELEGRAM_BOT_TOKEN`  | Bot token used to verify Telegram requests             |
-| `ALLOWED_TELEGRAM_ID` | Comma-separated allow-list of Telegram user IDs        |
+| Variable              | Required | Description                                            |
+| --------------------- | -------- | ------------------------------------------------------ |
+| `NOTION_TOKEN`        | yes      | Notion integration secret                              |
+| `NOTION_DATABASE_ID`  | yes      | ID of your meals database                              |
+| `ALLOWED_TELEGRAM_ID` | yes      | Comma-separated allow-list of Telegram user IDs        |
+| `TELEGRAM_BOT_TOKEN`  | optional | Verifies the Telegram signature so ids can't be forged |
 
 > **Security note:** all variables are server-side only. `ALLOWED_TELEGRAM_ID` is
-> what protects your data — it's checked against a cryptographically verified
-> Telegram signature on every API request, so opening the site in a browser
-> returns nothing.
+> what protects your data — the API checks every request's Telegram id against it,
+> so opening the site in a browser returns nothing. Add `TELEGRAM_BOT_TOKEN` to
+> also verify the cryptographic signature.
 
 ## 4. Run locally
 
@@ -100,14 +104,15 @@ cd client && npm run dev
 ## 5. Deploy to Vercel
 
 1. Import the repo into Vercel.
-2. Add all four environment variables in **Project Settings → Environment Variables**
-   (`NOTION_TOKEN`, `NOTION_DATABASE_ID`, `TELEGRAM_BOT_TOKEN`,
-   `ALLOWED_TELEGRAM_ID`).
+2. Add the environment variables in **Project Settings → Environment Variables**
+   (`NOTION_TOKEN`, `NOTION_DATABASE_ID`, `ALLOWED_TELEGRAM_ID`, and optionally
+   `TELEGRAM_BOT_TOKEN`).
 3. Deploy. The included `vercel.json` builds the client and serves the API.
 
 ## 6. Connect it to Telegram
 
-1. Open [@BotFather](https://t.me/BotFather) (using the bot you created in step 2).
+1. Open [@BotFather](https://t.me/BotFather) and create a bot (`/newbot`) if you
+   haven't already.
 2. Set up a Mini App / Web App (`/newapp` or via bot settings) and point its URL
    at your deployed Vercel domain.
 3. Open the app from your bot. Only the Telegram IDs you configured will get in;
